@@ -1,32 +1,55 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
-        stage('Initialize') {
-            steps {
-                echo 'Webhook from GitHub received!'
-            }
-        }
+  // Automatically trigger when a GitHub push event occurs
+  triggers {
+    githubPush()
+  }
 
-        stage('Build') {
-            steps {
-                echo 'Building Repo B...'
-            }
-        }
+  environment {
+    // Optional: expose repo name or other useful variables
+    REPO_URL = 'https://github.com/VonWebsterLabajo/jenkins-calculator-demo.git'
+  }
 
-        stage('Test') {
-            steps {
-                echo 'Yey! It\'s working!'
-            }
-        }
+  stages {
+    stage('Checkout') {
+      steps {
+        echo '📥 Checking out source code...'
+        git(
+          branch: 'main',
+          url: "${REPO_URL}",
+          credentialsId: 'GITHUB_PAT'
+        )
+      }
     }
 
-    post {
-        success {
-            echo '✅ Pipeline finished successfully!'
-        }
-        failure {
-            echo '❌ Pipeline failed!'
-        }
+    stage('Initialize') {
+      steps {
+        echo '⚙️ Initialize stage...'
+      }
     }
+
+    stage('Build') {
+      steps {
+        echo '🏗️ Building project...'
+        // Example: sh 'npm install' or 'mvn clean package'
+      }
+    }
+
+    stage('Test') {
+      steps {
+        echo '🧪 Running tests...'
+        // Example: sh 'npm test' or 'pytest tests/'
+      }
+    }
+  }
+
+  post {
+    success {
+      echo '✅ Pipeline finished successfully!'
+    }
+    failure {
+      echo '❌ Pipeline failed!'
+    }
+  }
 }
