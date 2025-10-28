@@ -7,14 +7,12 @@ pipeline {
   }
 
   stages {
-    stage('Pull Repo A') {
+    stage('Clone Repo A') {
       steps {
         echo '📦 Cloning Repo A (app repo)...'
-        git(
-          branch: 'main',
+        git branch: 'main',
           url: 'https://github.com/VonWebsterLabajo/jenkins-calculator-demo.git',
           credentialsId: 'GITHUB_PAT'
-        )
       }
     }
 
