@@ -137,10 +137,8 @@ pipeline {
 
   post {
     always {
-      node {
-        echo "🧹 Cleaning up temporary files..."
-        sh 'rm -f /tmp/http.pid || true'
-      }
+      echo "🧹 Cleaning up temporary files..."
+      sh 'rm -f /tmp/http.pid || true'
     }
   }
 }
