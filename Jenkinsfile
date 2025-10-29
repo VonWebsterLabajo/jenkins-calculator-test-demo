@@ -6,6 +6,10 @@ pipeline {
       maven 'maven3'
     }
 
+    triggers {
+      githubPush()
+    }
+
     environment {
         APP_REPO = 'https://github.com/VonWebsterLabajo/jenkins-calculator-demo.git'
         APP_DIR = 'app'
