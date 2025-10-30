@@ -49,7 +49,7 @@ pipeline {
 							echo $! > /tmp/http.pid
 							for i in {1..10}; do
                 echo "Waiting for app to start..."
-								curl -fsS http://jenkins-lts:3000 && break || sleep 1
+                curl -fsS http://localhost:3000 && break || sleep 1
 							done
 						'''
 					}
@@ -61,7 +61,7 @@ pipeline {
 			steps {
 				script {
 					withEnv([
-						"BASE_URL=http://jenkins-lts:3000",
+            "BASE_URL=http://jenkins-lts:3000",
 						"SELENIUM_HUB=http://selenium-node:4444/wd/hub"
 					]) {
 						echo "🧪 Running Selenium Cucumber tests..."
