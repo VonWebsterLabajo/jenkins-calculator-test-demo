@@ -45,7 +45,7 @@ pipeline {
 					dir("${APP_DIR}/src") {
 						sh '''
               PORT=3000
-							nohup npx http-server -p $PORT -c-1 --silent > /tmp/http.log 2>&1 &
+              nohup npx http-server -p $PORT -a 0.0.0.0 -c-1 --silent > /tmp/http.log 2>&1 &
 							echo $! > /tmp/http.pid
 							for i in {1..10}; do
                 echo "Waiting for app to start..."
