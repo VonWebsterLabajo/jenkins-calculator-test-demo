@@ -94,7 +94,8 @@ public class Hooks {
         }
 
         // 4) Navigate & stash driver
-        driver.get(url);
+        // driver.get(url);
+        driver.get(seleniumHub);
         DriverManager.setDriver(driver);
 
         // 5) Allure env + logs
