@@ -43,7 +43,6 @@ pipeline {
               script {
                   echo "🚀 Starting local HTTP server for app..."
                   dir("${APP_DIR}/src") {
-                      // Start a simple web server in background
                       sh '''
                           nohup npx http-server -p 8080 -c-1 --silent > /tmp/http.log 2>&1 &
                           echo $! > /tmp/http.pid
@@ -56,21 +55,24 @@ pipeline {
           }
       }
 
-      stage('Run UI Tests') {
+      stage('Run Automated Tests') {
           steps {
               script {
-                  echo "🧪 Running Cucumber + Allure Tests..."
-                  dir("${TEST_DIR}") {
-                      withEnv(["BASE_URL=http://127.0.0.1:8080", "HEADLESS=${HEADLESS}"]) {
-                          sh '''
-                              mvn -B clean test \
-                                -DbaseUrl=$BASE_URL \
-                                -Dheadless=$HEADLESS
-                          '''
-                      }
+                  withEnv([
+                      "BASE_URL=http://127.0.0.1:8080",
+                      "SELENIUM_HUB=http://selenium-node:4444/wd/hub"
+                  ]) {
+                      echo "🧪 Running Selenium Cucumber tests..."
+                      sh '''
+                          mvn -B clean test \
+                            -DbaseUrl=$BASE_URL \
+                            -Dselenium.hub=$SELENIUM_HUB
+                      '''
                   }
               }
           }
+      }
+
           post {
               always {
                   echo "🛑 Stopping local server..."

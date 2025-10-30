@@ -70,8 +70,15 @@ public class Hooks {
                         System.getenv().getOrDefault("HEADLESS", ConfigReader.get("HEADLESS"))));
 
         // IMPORTANT: allow CI override for base URL
-        String url = System.getProperty("baseUrl",
-                System.getenv().getOrDefault("BASE_URL", ConfigReader.get("APP_URL")));
+        // String url = System.getProperty("baseUrl",
+        //         System.getenv().getOrDefault("BASE_URL", ConfigReader.get("APP_URL")));
+
+        // Jenkins selenium-node image
+        String seleniumHub = System.getProperty(
+            "selenium.hub",
+            System.getenv().getOrDefault("SELENIUM_HUB", "http://localhost:4444/wd/hub")
+        );
+        WebDriver driver = new RemoteWebDriver(new URL(seleniumHub), options);
 
         if (url == null || url.isBlank()) {
             throw new IllegalStateException("Base URL is not configured. Provide -DbaseUrl=... or set APP_URL.");
