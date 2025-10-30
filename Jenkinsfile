@@ -44,10 +44,12 @@ pipeline {
 					echo "🚀 Starting local HTTP server for app..."
 					dir("${APP_DIR}/src") {
 						sh '''
-							nohup npx http-server -p 8080 -c-1 --silent > /tmp/http.log 2>&1 &
+              PORT=3000
+							nohup npx http-server -p $PORT -c-1 --silent > /tmp/http.log 2>&1 &
 							echo $! > /tmp/http.pid
 							for i in {1..10}; do
-								curl -fsS http://jenkins-lts:8080 && break || sleep 1
+                echo "Waiting for app to start..."
+								curl -fsS http://jenkins-lts:3000 && break || sleep 1
 							done
 						'''
 					}
@@ -59,7 +61,7 @@ pipeline {
 			steps {
 				script {
 					withEnv([
-						"BASE_URL=http://jenkins-lts:8080",
+						"BASE_URL=http://jenkins-lts:3000",
 						"SELENIUM_HUB=http://selenium-node:4444/wd/hub"
 					]) {
 						echo "🧪 Running Selenium Cucumber tests..."
