@@ -84,8 +84,8 @@ pipeline {
                 dir("${TEST_DIR}") {
                     echo "Generating Allure report..."
                     sh '''
-                        npm install -g allure-commandline@2
-                        allure generate target/allure-results --single-file --clean -o target/allure-single
+                        npm install allure-commandline@2 --save-dev
+                        npx allure generate target/allure-results --single-file --clean -o target/allure-single
                     '''
                 }
             }
