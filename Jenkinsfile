@@ -41,8 +41,8 @@ pipeline {
                     dir("${APP_DIR}") {
                         echo "Starting local HTTP server for index.html..."
                         sh '''
-                            npm install -g http-server
-                            nohup http-server -p $PORT -a 0.0.0.0 -c-1 --silent > ${HTTP_LOG} 2>&1 &
+                            npm install http-server
+                            nohup npx http-server -p $PORT -a 0.0.0.0 -c-1 --silent > ${HTTP_LOG} 2>&1 &
                             echo $! > ${HTTP_PID_FILE}
 
                             echo "Waiting for app to start..."
