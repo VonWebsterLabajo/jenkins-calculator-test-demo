@@ -35,48 +35,50 @@ pipeline {
             }
         }
 
-        stage('🌐 Serve Static App') {
+        stage('🚀 Start Local App Server') {
             steps {
                 script {
                     dir("${APP_DIR}") {
-                      echo "Starting static app server for index.html on port ${PORT}..."
-                      sh '''
-                          # Install http-server locally (no sudo/global permission issue)
-                          npm install http-server
+                        echo "Starting static app server for index.html on port ${PORT}..."
+                        sh '''
+                            # Install http-server locally (no root needed)
+                            npm install http-server
 
-                          # Kill any process using the port
-                          fuser -k ${PORT}/tcp || true
+                            # Kill anything that might already use the port (ignore if not found)
+                            command -v fuser >/dev/null 2>&1 && fuser -k ${PORT}/tcp || true
 
-                          # Start the server in background
-                          npx http-server -p ${PORT} -a 0.0.0.0 -c-1 --silent &
-                          SERVER_PID=$!
+                            # Start http-server in background using nohup
+                            nohup npx http-server -p ${PORT} -a 0.0.0.0 -c-1 --silent > ${HTTP_LOG} 2>&1 &
+                            SERVER_PID=$!
+                            echo $SERVER_PID > ${HTTP_PID_FILE}
+                            echo "Server started with PID: $SERVER_PID"
 
-                          echo $SERVER_PID > ${HTTP_PID_FILE}
-                          echo "Server PID: $SERVER_PID"
-                          
-                          # Wait for it to be ready
-                          echo "Waiting for server to respond..."
-                          for i in {1..15}; do
-                              if curl -fsS http://localhost:${PORT} > /dev/null; then
-                                  echo "✅ Server is up!"
-                                  exit 0
-                              fi
-                              echo "Attempt $i/15: server not ready yet..."
-                              sleep 1
-                          done
+                            # Wait up to 15 seconds for it to become available
+                            echo "Waiting for server to respond on http://localhost:${PORT} ..."
+                            for i in $(seq 1 15); do
+                                if curl -fsS http://localhost:${PORT} > /dev/null; then
+                                    echo "✅ Server is up!"
+                                    exit 0
+                                fi
+                                echo "Attempt $i/15: not yet available..."
+                                sleep 1
+                            done
 
-                          echo "❌ Server failed to start in time."
-                          exit 1
-                      '''
+                            echo "❌ Server failed to start within 15 seconds."
+                            echo "Logs:"
+                            cat ${HTTP_LOG} || true
+                            exit 1
+                        '''
                     }
                 }
             }
         }
 
+
         stage('🔍 Verify App Server Running') {
             steps {
                 sh '''
-                    echo "Checking app homepage:"
+                    echo "Verifying app server..."
                     curl -I http://localhost:${PORT} || true
                 '''
             }
