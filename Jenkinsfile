@@ -3,15 +3,14 @@ pipeline {
 
     tools {
         jdk 'jdk21'
-        maven 'maven3'
     }
 
-    parameters {
-        string(name: 'ARTIFACT_NAME', defaultValue: '', description: 'Artifact from Repo A')
-        string(name: 'ARTIFACT_DIR', defaultValue: '', description: 'Artifact directory from Repo A')
+    triggers {
+        githubPush()
     }
 
     environment {
+        APP_REPO = 'https://github.com/VonWebsterLabajo/jenkins-calculator-demo.git'
         APP_DIR = 'app'
         TEST_DIR = 'tests'
         PORT = '3000'
@@ -24,40 +23,42 @@ pipeline {
 
     stages {
 
-        stage('Checkout Repo B') {
+        stage('📦 Checkout Repositories') {
             steps {
-                checkout scm
+                echo "Cloning static app (Repo A) and tests (Repo B)..."
+                dir("${APP_DIR}") {
+                    git branch: 'main', url: "${APP_REPO}"
+                }
+                dir("${TEST_DIR}") {
+                    checkout scm
+                }
             }
         }
 
-        stage('Retrieve Artifact from Repo A') {
+        stage('🌐 Serve Static App') {
             steps {
-                echo "Downloading artifact from Repo A build..."
-                copyArtifacts(
-                    projectName: 'RepoA_Build_Pipeline', // Jenkins job for Repo A
-                    filter: "${params.ARTIFACT_DIR}/${params.ARTIFACT_NAME}",
-                    fingerprintArtifacts: true,
-                    optional: false
-                )
+                script {
+                    dir("${APP_DIR}") {
+                        echo "Starting local HTTP server for index.html..."
+                        sh '''
+                            npm install -g http-server
+                            nohup http-server -p $PORT -a 0.0.0.0 -c-1 --silent > ${HTTP_LOG} 2>&1 &
+                            echo $! > ${HTTP_PID_FILE}
+
+                            echo "Waiting for app to start..."
+                            for i in {1..10}; do
+                                curl -fsS http://localhost:${PORT} && echo "App started!" && break || sleep 1
+                            done
+                        '''
+                    }
+                }
             }
         }
 
-        stage('Start App Server') {
-            steps {
-                sh '''
-                    nohup npx http-server ${ARTIFACT_DIR} -p ${PORT} -a 0.0.0.0 -c-1 --silent > ${HTTP_LOG} 2>&1 &
-                    echo $! > ${HTTP_PID_FILE}
-                    echo "Waiting for app to start..."
-                    for i in {1..10}; do
-                        curl -fsS http://localhost:${PORT} && echo "App started!" && break || sleep 1
-                    done
-                '''
-            }
-        }
-
-        stage('Run Tests') {
+        stage('🧪 Run Automated Tests') {
             steps {
                 dir("${TEST_DIR}") {
+                    echo "Running Selenium + Cucumber tests..."
                     sh '''
                         mvn -B clean test \
                             -DbaseUrl=${BASE_URL} \
@@ -68,32 +69,33 @@ pipeline {
             }
             post {
                 always {
-                    sh 'kill $(cat ${HTTP_PID_FILE}) || true'
+                    echo "Stopping HTTP server..."
+                    sh '''
+                        if [ -f ${HTTP_PID_FILE} ]; then
+                            kill "$(cat ${HTTP_PID_FILE})" || true
+                        fi
+                    '''
                 }
             }
         }
 
-        stage('Generate & Archive Reports') {
+        stage('📊 Generate Allure Report') {
             steps {
                 dir("${TEST_DIR}") {
+                    echo "Generating Allure report..."
                     sh '''
                         npm install -g allure-commandline@2
                         allure generate target/allure-results --single-file --clean -o target/allure-single
                     '''
-                    archiveArtifacts artifacts: '**/target/allure-single/**', fingerprint: true
-                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
 
-        stage('Notify Result') {
+        stage('📁 Archive Results') {
             steps {
-                script {
-                    if (currentBuild.currentResult == 'SUCCESS') {
-                        echo "✅ Tests Passed"
-                    } else {
-                        echo "❌ Tests Failed"
-                    }
+                dir("${TEST_DIR}") {
+                    archiveArtifacts artifacts: '**/target/allure-single/**', fingerprint: true
+                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
@@ -101,6 +103,7 @@ pipeline {
 
     post {
         always {
+            echo "🧹 Cleanup..."
             sh 'rm -f ${HTTP_PID_FILE} ${HTTP_LOG} || true'
         }
     }
