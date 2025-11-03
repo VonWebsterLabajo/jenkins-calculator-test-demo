@@ -39,19 +39,46 @@ pipeline {
             steps {
                 script {
                     dir("${APP_DIR}") {
-                        echo "Starting local HTTP server for index.html..."
-                        sh '''
-                            npm install http-server
-                            nohup npx http-server -p $PORT -a 0.0.0.0 -c-1 --silent > ${HTTP_LOG} 2>&1 &
-                            echo $! > ${HTTP_PID_FILE}
+                      echo "Starting static app server for index.html on port ${PORT}..."
+                      sh '''
+                          # Install http-server locally (no sudo/global permission issue)
+                          npm install http-server
 
-                            echo "Waiting for app to start..."
-                            for i in {1..10}; do
-                                curl -fsS http://localhost:${PORT} && echo "App started!" && break || sleep 1
-                            done
-                        '''
+                          # Kill any process using the port
+                          fuser -k ${PORT}/tcp || true
+
+                          # Start the server in background
+                          npx http-server -p ${PORT} -a 0.0.0.0 -c-1 --silent &
+                          SERVER_PID=$!
+
+                          echo $SERVER_PID > ${HTTP_PID_FILE}
+                          echo "Server PID: $SERVER_PID"
+                          
+                          # Wait for it to be ready
+                          echo "Waiting for server to respond..."
+                          for i in {1..15}; do
+                              if curl -fsS http://localhost:${PORT} > /dev/null; then
+                                  echo "✅ Server is up!"
+                                  exit 0
+                              fi
+                              echo "Attempt $i/15: server not ready yet..."
+                              sleep 1
+                          done
+
+                          echo "❌ Server failed to start in time."
+                          exit 1
+                      '''
                     }
                 }
+            }
+        }
+
+        stage('🔍 Verify App Server Running') {
+            steps {
+                sh '''
+                    echo "Checking app homepage:"
+                    curl -I http://localhost:${PORT} || true
+                '''
             }
         }
 
