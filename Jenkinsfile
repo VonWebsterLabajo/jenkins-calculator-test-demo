@@ -38,7 +38,7 @@ pipeline {
         stage('🚀 Start Local App Server') {
             steps {
                 script {
-                    dir("${APP_DIR}") {
+                    dir("${APP_DIR}/src") {
                         echo "Starting static app server for index.html on port ${PORT}..."
                         sh '''
                             # Install http-server locally (no root needed)
