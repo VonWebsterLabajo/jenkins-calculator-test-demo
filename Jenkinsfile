@@ -146,4 +146,5 @@ pipeline {
             sh 'rm -f ${HTTP_PID_FILE} ${HTTP_LOG} || true'
         }
     }
+  }
 }
