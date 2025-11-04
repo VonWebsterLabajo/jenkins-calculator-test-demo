@@ -138,13 +138,12 @@ pipeline {
                 }
             }
         }
-
-
-    post {
-        always {
-            echo "🧹 Cleanup..."
-            sh 'rm -f ${HTTP_PID_FILE} ${HTTP_LOG} || true'
-        }
     }
+
+  post {
+      always {
+          echo "🧹 Cleanup..."
+          sh 'rm -f ${HTTP_PID_FILE} ${HTTP_LOG} || true'
+      }
   }
 }
