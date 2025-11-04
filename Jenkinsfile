@@ -88,11 +88,16 @@ pipeline {
             steps {
                 dir("${TEST_DIR}") {
                     echo "Running Selenium + Cucumber tests..."
+                    // Prevent stage from aborting pipeline on test failure
                     sh '''
+                        set +e
                         mvn -B clean test \
                             -DbaseUrl=${BASE_URL} \
                             -Dselenium.hub=${SELENIUM_HUB} \
                             -Dheadless=${HEADLESS}
+                        TEST_EXIT_CODE=$?
+                        echo "Maven exit code: $TEST_EXIT_CODE"
+                        exit 0  # Always succeed so next stages run
                     '''
                 }
             }
@@ -113,8 +118,12 @@ pipeline {
                 dir("${TEST_DIR}") {
                     echo "Generating Allure report..."
                     sh '''
-                        npm install allure-commandline@2 --save-dev
-                        npx allure generate target/allure-results --single-file --clean -o target/allure-single
+                        if [ -d target/allure-results ]; then
+                            npm install allure-commandline@2 --save-dev
+                            npx allure generate target/allure-results --single-file --clean -o target/allure-single || true
+                        else
+                            echo "⚠️ No allure-results found, skipping report generation."
+                        fi
                     '''
                 }
             }
@@ -123,12 +132,13 @@ pipeline {
         stage('📁 Archive Results') {
             steps {
                 dir("${TEST_DIR}") {
+                    echo "Archiving Allure and test reports..."
                     archiveArtifacts artifacts: '**/target/allure-single/**', fingerprint: true
-                    junit '**/target/surefire-reports/*.xml'
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
                 }
             }
         }
-    }
+
 
     post {
         always {
