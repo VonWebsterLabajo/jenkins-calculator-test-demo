@@ -15,7 +15,7 @@ pipeline {
         TEST_DIR = 'tests'
         PORT = '3000'
         HEADLESS = 'true'
-        SELENIUM_HUB = 'http://selenium-node:4444/wd/hub'
+        SELENIUM_HUB = 'http://selenium-hub:4444/wd/hub'
         BASE_URL = "http://jenkins-lts:${PORT}"
         HTTP_PID_FILE = '/tmp/http.pid'
         HTTP_LOG = '/tmp/http.log'
