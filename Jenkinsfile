@@ -138,8 +138,6 @@ pipeline {
                 }
             }
         }
-    }
-
       stage('🟢 Deploy to GitHub Pages') {
       when {
           expression {
@@ -189,7 +187,9 @@ pipeline {
               }
           }
       }
+    }
   }
+
 
   post {
       always {
