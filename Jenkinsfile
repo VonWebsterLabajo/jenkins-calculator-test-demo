@@ -140,6 +140,57 @@ pipeline {
         }
     }
 
+      stage('🟢 Deploy to GitHub Pages') {
+      when {
+          expression {
+              // Only run if the previous stages succeeded
+              currentBuild.currentResult == 'SUCCESS'
+          }
+      }
+      steps {
+          script {
+              // Manual approval before deploying
+              timeout(time: 15, unit: 'MINUTES') {
+                  input message: 'Deploy to GitHub Pages?', ok: 'Deploy Now'
+              }
+
+              dir("${APP_DIR}") {
+                  echo "🚀 Deploying static app to GitHub Pages..."
+
+                  sh '''
+                      # Configure Git
+                      git config user.email "jenkins@local"
+                      git config user.name "Jenkins CI"
+
+                      # Ensure we are in the repo
+                      git checkout main
+
+                      # Create or switch to gh-pages branch
+                      git fetch origin
+                      if git show-ref --quiet refs/remotes/origin/gh-pages; then
+                          git checkout gh-pages
+                      else
+                          git checkout --orphan gh-pages
+                      fi
+
+                      # Clear old files
+                      rm -rf *
+
+                      # Copy the app source files
+                      cp -r src/* .
+
+                      # Commit and push
+                      git add .
+                      git commit -m "CD: Deploy from Jenkins build ${BUILD_NUMBER}" || true
+                      git push -f origin gh-pages
+
+                      echo "✅ Deployed to GitHub Pages successfully!"
+                  '''
+              }
+          }
+      }
+  }
+
   post {
       always {
           echo "🧹 Cleanup..."
