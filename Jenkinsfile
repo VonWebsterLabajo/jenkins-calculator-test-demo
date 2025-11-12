@@ -163,6 +163,9 @@ pipeline {
                   # Fetch latest from origin
                   git fetch origin
 
+                  # Remove untracked files (dangerous if you have important files!)
+                  git clean -fdx
+
                   # Handle gh-pages branch
                   if git show-ref --verify --quiet refs/heads/gh-pages; then
                       # Local branch exists
