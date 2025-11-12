@@ -160,12 +160,23 @@ pipeline {
                   mkdir -p /tmp/deploy-src
                   cp -r src/* /tmp/deploy-src/
 
-                  # Switch to gh-pages (create if doesn't exist)
+                  # Fetch latest from origin
                   git fetch origin
-                  git checkout -B gh-pages origin/gh-pages || git checkout --orphan gh-pages
+
+                  # Handle gh-pages branch
+                  if git show-ref --verify --quiet refs/heads/gh-pages; then
+                      # Local branch exists
+                      git checkout gh-pages
+                  elif git ls-remote --exit-code --heads origin gh-pages; then
+                      # Remote branch exists, create local tracking branch
+                      git checkout -b gh-pages origin/gh-pages
+                  else
+                      # Branch does not exist, create orphan branch
+                      git checkout --orphan gh-pages
+                  fi
 
                   # Clean existing files and copy new build
-                  rm -rf *
+                  git rm -rf . || true
                   cp -r /tmp/deploy-src/* .
 
                   # Commit and push using PAT authentication
