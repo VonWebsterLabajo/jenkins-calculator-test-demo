@@ -162,11 +162,7 @@ pipeline {
 
                   # Switch to gh-pages (create if doesn't exist)
                   git fetch origin
-                  if git show-ref --quiet refs/remotes/origin/gh-pages; then
-                      git checkout gh-pages
-                  else
-                      git checkout --orphan gh-pages
-                  fi
+                  git checkout -B gh-pages origin/gh-pages || git checkout --orphan gh-pages
 
                   # Clean existing files and copy new build
                   rm -rf *
