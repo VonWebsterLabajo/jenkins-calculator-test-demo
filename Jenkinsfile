@@ -160,10 +160,11 @@ pipeline {
                       git config user.email "jenkins@local"
                       git config user.name "Jenkins CI"
 
-                      # Ensure we are in the repo
-                      git checkout main
+                      # Save the files first
+                      mkdir -p /tmp/deploy-src
+                      cp -r src/* /tmp/deploy-src/
 
-                      # Create or switch to gh-pages branch
+                      # Switch to gh-pages branch
                       git fetch origin
                       if git show-ref --quiet refs/remotes/origin/gh-pages; then
                           git checkout gh-pages
@@ -171,13 +172,10 @@ pipeline {
                           git checkout --orphan gh-pages
                       fi
 
-                      # Clear old files
+                      # Clear old files and copy new ones
                       rm -rf *
+                      cp -r /tmp/deploy-src/* .
 
-                      # Copy the app source files
-                      cp -r src/* .
-
-                      # Commit and push
                       git add .
                       git commit -m "CD: Deploy from Jenkins build ${BUILD_NUMBER}" || true
                       git push -f origin gh-pages
