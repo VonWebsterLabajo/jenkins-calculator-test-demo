@@ -138,54 +138,53 @@ pipeline {
                 }
             }
         }
-      stage('🟢 Deploy to GitHub Pages') {
-      when {
-          expression {
-              // Only run if the previous stages succeeded
-              currentBuild.currentResult == 'SUCCESS'
+        stage('🟢 Deploy to GitHub Pages') {
+          when {
+            expression { currentBuild.currentResult == 'SUCCESS' }
           }
-      }
-      steps {
-          script {
-              // Manual approval before deploying
+          steps {
+            script {
               timeout(time: 15, unit: 'MINUTES') {
-                  input message: 'Deploy to GitHub Pages?', ok: 'Deploy Now'
+                input message: 'Deploy to GitHub Pages?', ok: 'Deploy Now'
               }
 
               dir("${APP_DIR}") {
-                  echo "🚀 Deploying static app to GitHub Pages..."
+                echo "🚀 Deploying static app to GitHub Pages..."
 
-                  sh '''
-                      # Configure Git
-                      git config user.email "jenkins@local"
-                      git config user.name "Jenkins CI"
+          withCredentials([usernamePassword(credentialsId: 'GITHUB_PAT', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+              sh '''
+                  git config user.email "jenkins@local"
+                  git config user.name "Jenkins CI"
 
-                      # Save the files first
-                      mkdir -p /tmp/deploy-src
-                      cp -r src/* /tmp/deploy-src/
+                  # Save app files before switching branches
+                  mkdir -p /tmp/deploy-src
+                  cp -r src/* /tmp/deploy-src/
 
-                      # Switch to gh-pages branch
-                      git fetch origin
-                      if git show-ref --quiet refs/remotes/origin/gh-pages; then
-                          git checkout gh-pages
-                      else
-                          git checkout --orphan gh-pages
-                      fi
+                  # Switch to gh-pages (create if doesn't exist)
+                  git fetch origin
+                  if git show-ref --quiet refs/remotes/origin/gh-pages; then
+                      git checkout gh-pages
+                  else
+                      git checkout --orphan gh-pages
+                  fi
 
-                      # Clear old files and copy new ones
-                      rm -rf *
-                      cp -r /tmp/deploy-src/* .
+                  # Clean existing files and copy new build
+                  rm -rf *
+                  cp -r /tmp/deploy-src/* .
 
-                      git add .
-                      git commit -m "CD: Deploy from Jenkins build ${BUILD_NUMBER}" || true
-                      git push -f origin gh-pages
+                  # Commit and push using PAT authentication
+                  git add .
+                  git commit -m "CD: Deploy from Jenkins build ${BUILD_NUMBER}" || true
+                  git push -f https://${GIT_USER}:${GIT_PASS}@github.com/VonWebsterLabajo/jenkins-calculator-demo.git gh-pages
 
-                      echo "✅ Deployed to GitHub Pages successfully!"
+                  echo "✅ Deployed to GitHub Pages successfully!"
                   '''
+                }
               }
+            }
           }
-      }
-    }
+        }
+
   }
 
 
