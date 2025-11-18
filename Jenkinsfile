@@ -222,5 +222,14 @@ pipeline {
         attachLog: true
       )
     }
+    unstable {
+      emailext(
+        subject: "⚠️ Build Unstable: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        body: "The build is unstable (some tests failed or thresholds not met).<br>Console Output:<br>${env.BUILD_URL}",
+        to: "cheqtest.0017@gmail.com",
+        mimeType: 'text/html',
+        attachLog: true
+      )
+    }
   }
 }
