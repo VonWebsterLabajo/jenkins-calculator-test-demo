@@ -207,25 +207,19 @@ pipeline {
     success {
       emailext(
         subject: "✅ Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        body: "Build succeeded! Check console: ${env.BUILD_URL}",
-        to: "vonwebster.ste@gmail.com",
-        from: "vonwebster.ste@gmail.com",
-        replyTo: "vonwebster.ste@gmail.com",
-        attachLog: true,
+        body: "Build succeeded!<br>Console Output:<br>${env.BUILD_URL}",
+        to: "cheqtest.0017@gmail.com",
         mimeType: 'text/html',
-        credentialsId: 'GMAIL_JENKINS'
-      )
+        attachLog: true
+        )
     }
     failure {
       emailext(
         subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-        body: "Build failed! Check console: ${env.BUILD_URL}",
-        to: "vonwebster.ste@gmail.com",
-        from: "vonwebster.ste@gmail.com",
-        replyTo: "vonwebster.ste@gmail.com",
-        attachLog: true,
+        body: "Build failed!<br>Console Output:<br>${env.BUILD_URL}",
+        to: "cheqtest.0017@gmail.com",
         mimeType: 'text/html',
-        credentialsId: 'GMAIL_JENKINS'
+        attachLog: true
       )
     }
   }
