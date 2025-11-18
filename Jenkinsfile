@@ -199,9 +199,34 @@ pipeline {
 
 
   post {
-      always {
-          echo "🧹 Cleanup..."
-          sh 'rm -f ${HTTP_PID_FILE} ${HTTP_LOG} || true'
-      }
+    always {
+      echo "🧹 Cleanup..."
+      sh 'rm -f ${HTTP_PID_FILE} ${HTTP_LOG} || true'
+    }
+
+    success {
+      emailext(
+        subject: "✅ Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        body: "Build succeeded! Check console: ${env.BUILD_URL}",
+        to: "vonwebster.ste@gmail.com",
+        from: "vonwebster.ste@gmail.com",
+        replyTo: "vonwebster.ste@gmail.com",
+        attachLog: true,
+        mimeType: 'text/html',
+        credentialsId: 'GMAIL_JENKINS'
+      )
+    }
+    failure {
+      emailext(
+        subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        body: "Build failed! Check console: ${env.BUILD_URL}",
+        to: "vonwebster.ste@gmail.com",
+        from: "vonwebster.ste@gmail.com",
+        replyTo: "vonwebster.ste@gmail.com",
+        attachLog: true,
+        mimeType: 'text/html',
+        credentialsId: 'GMAIL_JENKINS'
+      )
+    }
   }
 }
