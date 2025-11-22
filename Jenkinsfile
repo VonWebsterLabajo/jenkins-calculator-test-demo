@@ -10,7 +10,7 @@ pipeline {
     }
 
     environment {
-        APP_REPO = 'https://github.com/VonWebsterLabajo/jenkins-calculator-demo.git'
+        APP_REPO = 'https://github.com/avidcutlet/jenkins-calculator-demo.git'
         APP_DIR = 'app'
         TEST_DIR = 'tests'
         PORT = '3000'
