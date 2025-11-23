@@ -13,7 +13,7 @@ pipeline {
         APP_REPO = 'https://github.com/avidcutlet/jenkins-calculator-demo.git'
         APP_DIR = 'app'
         TEST_DIR = 'tests'
-        PORT = '3000'
+        PORT = '3001'
         HEADLESS = 'true'
         SELENIUM_HUB = 'http://selenium-hub:4444/wd/hub'
         BASE_URL = "http://calculator-app:${PORT}"
