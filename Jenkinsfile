@@ -35,51 +35,15 @@ pipeline {
             }
         }
 
-        stage('🚀 Start Local App Server') {
+        stage('Verify App Service') {
             steps {
-                script {
-                    dir("${APP_DIR}/src") {
-                        echo "Starting static app server for index.html on port ${PORT}..."
-                        sh '''
-                            # Install http-server locally (no root needed)
-                            npm install http-server
-
-                            # Kill anything that might already use the port (ignore if not found)
-                            command -v fuser >/dev/null 2>&1 && fuser -k ${PORT}/tcp || true
-
-                            # Start http-server in background using nohup
-                            nohup npx http-server -p ${PORT} -a 0.0.0.0 -c-1 --silent > ${HTTP_LOG} 2>&1 &
-                            SERVER_PID=$!
-                            echo $SERVER_PID > ${HTTP_PID_FILE}
-                            echo "Server started with PID: $SERVER_PID"
-
-                            # Wait up to 15 seconds for it to become available
-                            echo "Waiting for server to respond on http://localhost:${PORT} ..."
-                            for i in $(seq 1 15); do
-                                if curl -fsS http://localhost:${PORT} > /dev/null; then
-                                    echo "✅ Server is up!"
-                                    exit 0
-                                fi
-                                echo "Attempt $i/15: not yet available..."
-                                sleep 1
-                            done
-
-                            echo "❌ Server failed to start within 15 seconds."
-                            echo "Logs:"
-                            cat ${HTTP_LOG} || true
-                            exit 1
-                        '''
-                    }
-                }
-            }
-        }
-
-
-        stage('🔍 Verify App Server Running') {
-            steps {
+                echo "Checking if the app service is reachable..."
                 sh '''
-                    echo "Verifying app server..."
-                    curl -I http://localhost:${PORT} || true
+                    for i in {1..15}; do
+                        curl -fsS ${BASE_URL} && break
+                        echo "Attempt \$i: app not yet available..."
+                        sleep 1
+                    done
                 '''
             }
         }
