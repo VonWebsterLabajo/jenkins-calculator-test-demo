@@ -17,6 +17,7 @@ pipeline {
         HEADLESS = 'true'
         SELENIUM_HUB = 'http://selenium-hub:4444/wd/hub'
         BASE_URL = "http://localhost:${PORT}"
+
         HTTP_PID_FILE = '/tmp/http.pid'
         HTTP_LOG = '/tmp/http.log'
     }
