@@ -112,19 +112,39 @@ pipeline {
 			}
 		}
 
-		stage('📈 Push Metrics to InfluxDB') {
-			steps {
-				script {
-					def passed = sh(script: "grep -c 'Tests run: .*Failures: 0' ${TEST_DIR}/target/surefire-reports/*.txt", returnStdout: true).trim()
-					def failed = sh(script: "grep -c 'Failures: [1-9]' ${TEST_DIR}/target/surefire-reports/*.txt", returnStdout: true).trim()
+    stage('📈 Push Metrics to InfluxDB') {
+      steps {
+        script {
+          try {
+            // Count total tests and failures from Surefire XML
+            def totalTests = sh(
+              script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
+              returnStdout: true
+            ).trim()
+            
+            def totalFailures = sh(
+              script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
+              returnStdout: true
+            ).trim()
 
-					influxDbPublisher(
-						selectedTarget: 'jenkins-influxdb',
-						customData: "tests,project=calculator passed=${passed},failed=${failed}"
-					)
-				}
-			}
-		}
+            def passedTests = (totalTests.toInteger() - totalFailures.toInteger()).toString()
+
+            echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}"
+
+            // Push metrics to InfluxDB
+            influxDbPublisher(
+              selectedTarget: 'jenkins-influxdb',
+              customData: "tests,project=calculator total=${totalTests},passed=${passedTests},failed=${totalFailures}"
+            )
+
+          } catch (Exception e) {
+            echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
+          }
+        }
+      }
+    }
+
+
 
 		stage('📊 Generate Allure Report') {
 			steps {
@@ -220,6 +240,7 @@ pipeline {
 				subject: "✅ Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
 				body: "Build succeeded!<br>Console Output:<br>${env.BUILD_URL}",
 				to: "cheqtest.0017@gmail.com",
+        from: "vonwebster.ste@gmail.com",
 				mimeType: 'text/html',
 				attachLog: true
 			)
@@ -230,6 +251,7 @@ pipeline {
 				subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
 				body: "Build failed!<br>Console Output:<br>${env.BUILD_URL}",
 				to: "cheqtest.0017@gmail.com",
+        from: "vonwebster.ste@gmail.com",
 				mimeType: 'text/html',
 				attachLog: true
 			)
@@ -240,6 +262,7 @@ pipeline {
 				subject: "⚠️ Build Unstable: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
 				body: "The build is unstable (some tests failed or thresholds not met).<br>Console Output:<br>${env.BUILD_URL}",
 				to: "cheqtest.0017@gmail.com",
+        from: "vonwebster.ste@gmail.com",
 				mimeType: 'text/html',
 				attachLog: true
 			)
