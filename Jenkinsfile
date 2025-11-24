@@ -35,6 +35,7 @@ pipeline {
             }
         }
 
+<<<<<<< Updated upstream
         stage('Verify App Service') {
             steps {
                 echo "Checking if the app service is reachable..."
@@ -48,6 +49,8 @@ pipeline {
             }
         }
 
+=======
+>>>>>>> Stashed changes
         stage('🧪 Run Automated Tests') {
             steps {
                 dir("${TEST_DIR}") {
