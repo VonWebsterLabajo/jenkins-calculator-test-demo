@@ -16,7 +16,7 @@ pipeline {
         PORT = '3001'
         HEADLESS = 'true'
         SELENIUM_HUB = 'http://selenium-hub:4444/wd/hub'
-        BASE_URL = "http://localhost:${PORT}"
+        BASE_URL = "http://jenkins:${PORT}"
         HTTP_PID_FILE = '/tmp/http.pid'
         HTTP_LOG = '/tmp/http.log'
     }
