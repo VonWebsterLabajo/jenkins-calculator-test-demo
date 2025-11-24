@@ -35,22 +35,6 @@ pipeline {
             }
         }
 
-<<<<<<< Updated upstream
-        stage('Verify App Service') {
-            steps {
-                echo "Checking if the app service is reachable..."
-                sh '''
-                    for i in {1..15}; do
-                        curl -fsS ${BASE_URL} && break
-                        echo "Attempt \$i: app not yet available..."
-                        sleep 1
-                    done
-                '''
-            }
-        }
-
-=======
->>>>>>> Stashed changes
         stage('🧪 Run Automated Tests') {
             steps {
                 dir("${TEST_DIR}") {
