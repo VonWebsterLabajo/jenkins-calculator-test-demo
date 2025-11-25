@@ -30,31 +30,31 @@ pipeline {
     stage('🛑 Gate: Only Run When PR Is Merged Into Main') {
       steps {
         script {
+          echo "Jenkins detected branch: ${env.BRANCH_NAME}"
 
-          // Checkout repository to allow git commands
-          checkout scm
-
-          sh "git fetch --all"
-
-          def branchName = sh(script: "git rev-parse --abbrev-ref HEAD", returnStdout: true).trim()
-          def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
-
-          echo "Detected branch: ${branchName}"
-          echo "Commit message: ${commitMessage}"
-
-          if (branchName != 'main') {
+          // Only continue if branch is 'main'
+          if (env.BRANCH_NAME != 'main') {
             echo "⛔ Not main branch → stopping pipeline."
             currentBuild.result = 'NOT_BUILT'
-            error("Stopping pipeline: branch is ${branchName}, not main.")
+            error("Stopping pipeline: branch is ${env.BRANCH_NAME}, not main.")
           }
 
+          // Fetch latest commit message
+          def commitMessage = sh(
+            script: "git log -1 --pretty=%B",
+            returnStdout: true
+          ).trim()
+
+          echo "Latest commit message: ${commitMessage}"
+
+          // Only continue if this is a merge commit
           if (!commitMessage.contains("Merge pull request")) {
             echo "⛔ Not a merge commit → stopping pipeline."
             currentBuild.result = 'NOT_BUILT'
             error("Stopping pipeline: latest commit is not a PR merge.")
           }
 
-          echo "✅ Allowed: This is a PR merge into main. Continuing pipeline..."
+          echo "✅ This is a PR merge into main. Continuing pipeline..."
         }
       }
     }
