@@ -120,21 +120,31 @@ pipeline {
             def totalTests = sh(
               script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
               returnStdout: true
-            ).trim()
+            ).trim().toInteger()
             
             def totalFailures = sh(
               script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
               returnStdout: true
-            ).trim()
-
-            def passedTests = (totalTests.toInteger() - totalFailures.toInteger()).toString()
+            ).trim().toInteger()
+            
+            def passedTests = totalTests - totalFailures
 
             echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}"
 
-            // Push metrics to InfluxDB
+            // Push metrics to InfluxDB using a Map
             influxDbPublisher(
               selectedTarget: 'jenkins-influxdb',
-              customData: "tests,project=calculator total=${totalTests},passed=${passedTests},failed=${totalFailures}"
+              customData: [
+                measurementName: 'tests',
+                fields: [
+                  total: totalTests,
+                  passed: passedTests,
+                  failed: totalFailures
+                ],
+                tags: [
+                  project: 'calculator'
+                ]
+              ]
             )
 
           } catch (Exception e) {
