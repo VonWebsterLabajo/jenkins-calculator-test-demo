@@ -116,6 +116,7 @@ pipeline {
       steps {
         script {
           try {
+            // Count total tests and failures from Surefire XML
             def totalTests = sh(
               script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
               returnStdout: true
@@ -130,12 +131,21 @@ pipeline {
 
             echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}"
 
-            // Push metrics to InfluxDB (flatten fields)
+            // Push metrics to InfluxDB using a Map
             influxDbPublisher(
               selectedTarget: 'jenkins-influxdb',
-              customData: "tests total=${totalTests},passed=${passedTests},failed=${totalFailures}"
+              customData: [
+                measurementName: 'tests',
+                fields: [
+                  total: totalTests,
+                  passed: passedTests,
+                  failed: totalFailures
+                ],
+                tags: [
+                  project: 'calculator'
+                ]
+              ]
             )
-
 
           } catch (Exception e) {
             echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
