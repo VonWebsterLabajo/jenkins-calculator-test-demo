@@ -133,14 +133,9 @@ pipeline {
             // Push metrics to InfluxDB (flatten fields)
             influxDbPublisher(
               selectedTarget: 'jenkins-influxdb',
-              customData: [
-                "measurementName": "tests",
-                "total": totalTests,
-                "passed": passedTests,
-                "failed": totalFailures,
-                "project": "calculator"
-              ]
+              customData: "tests total=${totalTests},passed=${passedTests},failed=${totalFailures}"
             )
+
 
           } catch (Exception e) {
             echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
