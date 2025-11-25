@@ -8,10 +8,6 @@ pipeline {
 	triggers {
 		githubPush()
 	}
-  
-  options {
-    skipDefaultCheckout(true)
-  }
 
 	environment {
 		APP_REPO = 'https://github.com/avidcutlet/jenkins-calculator-demo.git'
@@ -26,38 +22,6 @@ pipeline {
 	}
 
 	stages {
-    
-    stage('🛑 Gate: Only Run When PR Is Merged Into Main') {
-      steps {
-        script {
-          echo "Jenkins detected branch: ${env.BRANCH_NAME}"
-
-          // Only continue if branch is 'main'
-          if (env.BRANCH_NAME != 'main') {
-            echo "⛔ Not main branch → stopping pipeline."
-            currentBuild.result = 'NOT_BUILT'
-            error("Stopping pipeline: branch is ${env.BRANCH_NAME}, not main.")
-          }
-
-          // Fetch latest commit message
-          def commitMessage = sh(
-            script: "git log -1 --pretty=%B",
-            returnStdout: true
-          ).trim()
-
-          echo "Latest commit message: ${commitMessage}"
-
-          // Only continue if this is a merge commit
-          if (!commitMessage.contains("Merge pull request")) {
-            echo "⛔ Not a merge commit → stopping pipeline."
-            currentBuild.result = 'NOT_BUILT'
-            error("Stopping pipeline: latest commit is not a PR merge.")
-          }
-
-          echo "✅ This is a PR merge into main. Continuing pipeline..."
-        }
-      }
-    }
 
     stage('🚀 Start Local App Server') {
       steps {
