@@ -23,6 +23,18 @@ pipeline {
 
 	stages {
 
+    stage('📦 Checkout Repositories') {
+      steps {
+        echo "Cloning static app (Repo A) and tests (Repo B)..."
+        dir("${APP_DIR}") {
+          git branch: 'staging', url: "${APP_REPO}"
+        }
+        dir("${TEST_DIR}") {
+          checkout scm
+        }
+      }
+    }
+
     stage('🚀 Start Local App Server') {
       steps {
         script {
