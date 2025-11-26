@@ -125,19 +125,13 @@ pipeline {
               script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
               returnStdout: true
             ).trim().toInteger()
-
-            // Sum total test duration in seconds first
-            def totalDurationSeconds = sh(
-              script: "xmllint --xpath 'sum(//testsuite/@time)' ${TEST_DIR}/target/surefire-reports/*.xml",
-              returnStdout: true
-            ).trim().toFloat()
-
-            // Convert to milliseconds
-            def totalDuration = (totalDurationSeconds * 1000).toInteger()
             
             def passedTests = totalTests - totalFailures
 
-            echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Test Duration: ${totalDuration}"
+            def buildDurationMillis = currentBuild.duration  // in milliseconds
+            def buildDurationSec = buildDurationMillis / 1000
+
+            echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
 
             // Push metrics to InfluxDB (flatten fields)
             influxDbPublisher(
@@ -147,7 +141,7 @@ pipeline {
                 "total": totalTests,
                 "passed": passedTests,
                 "failed": totalFailures,
-                "total_duration": totalDuration,
+                "total_duration": buildDurationSec,
                 "project": "calculator"
               ]
             )
