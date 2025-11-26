@@ -129,7 +129,7 @@ pipeline {
             def passedTests = totalTests - totalFailures
 
             def buildDurationMillis = currentBuild.duration  // in milliseconds
-            def buildDurationSec = buildDurationMillis / 1000
+            def buildDurationSec = (buildDurationMillis / 1000).toInteger()
 
             echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
 
