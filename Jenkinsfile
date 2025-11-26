@@ -126,11 +126,14 @@ pipeline {
               returnStdout: true
             ).trim().toInteger()
 
-            // Compute total test duration in milliseconds (from Surefire XML)
-            def totalDuration = sh(
-              script: "xmllint --xpath 'sum(//testsuite/@time*1000)' ${TEST_DIR}/target/surefire-reports/*.xml",
+            // Sum total test duration in seconds first
+            def totalDurationSeconds = sh(
+              script: "xmllint --xpath 'sum(//testsuite/@time)' ${TEST_DIR}/target/surefire-reports/*.xml",
               returnStdout: true
-            ).trim().toInteger()
+            ).trim().toFloat()
+
+            // Convert to milliseconds
+            def totalDuration = (totalDurationSeconds * 1000).toInteger()
             
             def passedTests = totalTests - totalFailures
 
