@@ -112,46 +112,54 @@ pipeline {
       }
     }
 
-    stage('📈 Push Metrics to InfluxDB') {
-      steps {
-        script {
-          try {
-            def totalTests = sh(
-              script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
-              returnStdout: true
-            ).trim().toInteger()
+    // stage('📈 Push Metrics to InfluxDB') {
+    //   steps {
+    //     script {
+    //       try {
+    //         def totalTests = sh(
+    //           script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
+    //           returnStdout: true
+    //         ).trim().toInteger()
             
-            def totalFailures = sh(
-              script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
-              returnStdout: true
-            ).trim().toInteger()
+    //         def totalFailures = sh(
+    //           script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
+    //           returnStdout: true
+    //         ).trim().toInteger()
             
-            def passedTests = totalTests - totalFailures
+    //         def passedTests = totalTests - totalFailures
 
-            def buildDurationMillis = currentBuild.duration  // in milliseconds
-            def buildDurationSec = (buildDurationMillis / 1000).toInteger()
+    //         echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}"
 
-            echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
+    //         // Push metrics to InfluxDB (flatten fields)
+    //         influxDbPublisher(
+    //           selectedTarget: 'jenkins-influxdb',
+    //           customData: [
+    //             "measurementName": "tests",
+    //             "total": totalTests,
+    //             "passed": passedTests,
+    //             "failed": totalFailures,
+    //             "project": "calculator"
+    //           ]
+    //         )
 
-            // Push metrics to InfluxDB (flatten fields)
-            influxDbPublisher(
-              selectedTarget: 'jenkins-influxdb',
-              customData: [
-                "measurementName": "tests",
-                "total": totalTests,
-                "passed": passedTests,
-                "failed": totalFailures,
-                "total_duration": buildDurationSec,
-                "project": "calculator"
-              ]
-            )
+    //       } catch (Exception e) {
+    //         echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
+    //       }
+    //     }
+    //   }
+    // }
 
-          } catch (Exception e) {
-            echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
-          }
-        }
-      }
+    stage('Publish Test Metrics') {
+      sh '''
+        echo "tests_total ${TOTAL}" > metrics.prom
+        echo "tests_passed ${PASSED}" >> metrics.prom
+        echo "tests_failed ${FAILED}" >> metrics.prom
+        echo "tests_pass_rate ${PASS_RATE}" >> metrics.prom
+
+        curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
+      '''
     }
+
 
     stage('📊 Generate Allure Report') {
       steps {
@@ -242,37 +250,37 @@ pipeline {
 			sh 'rm -f ${HTTP_PID_FILE} ${HTTP_LOG} || true'
 		}
 
-		success {
-			emailext(
-				subject: "✅ Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-				body: "Build succeeded!<br>Console Output:<br>${env.BUILD_URL}",
-				to: "cheqtest.0017@gmail.com",
-        from: "vonwebster.ste@gmail.com",
-				mimeType: 'text/html',
-				attachLog: true
-			)
-		}
+		// success {
+		// 	emailext(
+		// 		subject: "✅ Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+		// 		body: "Build succeeded!<br>Console Output:<br>${env.BUILD_URL}",
+		// 		to: "cheqtest.0017@gmail.com",
+    //     from: "vonwebster.ste@gmail.com",
+		// 		mimeType: 'text/html',
+		// 		attachLog: true
+		// 	)
+		// }
 
-		failure {
-			emailext(
-				subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-				body: "Build failed!<br>Console Output:<br>${env.BUILD_URL}",
-				to: "cheqtest.0017@gmail.com",
-        from: "vonwebster.ste@gmail.com",
-				mimeType: 'text/html',
-				attachLog: true
-			)
-		}
+		// failure {
+		// 	emailext(
+		// 		subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+		// 		body: "Build failed!<br>Console Output:<br>${env.BUILD_URL}",
+		// 		to: "cheqtest.0017@gmail.com",
+    //     from: "vonwebster.ste@gmail.com",
+		// 		mimeType: 'text/html',
+		// 		attachLog: true
+		// 	)
+		// }
 
-		unstable {
-			emailext(
-				subject: "⚠️ Build Unstable: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-				body: "The build is unstable (some tests failed or thresholds not met).<br>Console Output:<br>${env.BUILD_URL}",
-				to: "cheqtest.0017@gmail.com",
-        from: "vonwebster.ste@gmail.com",
-				mimeType: 'text/html',
-				attachLog: true
-			)
-		}
+		// unstable {
+		// 	emailext(
+		// 		subject: "⚠️ Build Unstable: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+		// 		body: "The build is unstable (some tests failed or thresholds not met).<br>Console Output:<br>${env.BUILD_URL}",
+		// 		to: "cheqtest.0017@gmail.com",
+    //     from: "vonwebster.ste@gmail.com",
+		// 		mimeType: 'text/html',
+		// 		attachLog: true
+		// 	)
+		// }
 	}
 }
