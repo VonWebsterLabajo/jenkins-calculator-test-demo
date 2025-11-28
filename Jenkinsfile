@@ -120,15 +120,19 @@ pipeline {
     //           script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
     //           returnStdout: true
     //         ).trim().toInteger()
-            
+
     //         def totalFailures = sh(
     //           script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
     //           returnStdout: true
     //         ).trim().toInteger()
-            
+
     //         def passedTests = totalTests - totalFailures
 
-    //         echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}"
+    //         def buildDurationMillis = currentBuild.duration  // in milliseconds
+    //         def buildDurationSec = buildDurationMillis / 1000
+    //         def buildDurationSec = (buildDurationMillis / 1000).toInteger()
+
+    //         echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
 
     //         // Push metrics to InfluxDB (flatten fields)
     //         influxDbPublisher(
@@ -138,6 +142,7 @@ pipeline {
     //             "total": totalTests,
     //             "passed": passedTests,
     //             "failed": totalFailures,
+    //             "total_duration": buildDurationSec,
     //             "project": "calculator"
     //           ]
     //         )
@@ -148,6 +153,7 @@ pipeline {
     //     }
     //   }
     // }
+
 
     stage('Publish Test Metrics') {
       steps {
@@ -165,11 +171,16 @@ pipeline {
           def passedTests = totalTests.toInteger() - totalFailures.toInteger()
           def passRate = (passedTests * 100) / totalTests.toInteger()
 
+          def buildDurationMillis = currentBuild.duration  // in milliseconds
+          def buildDurationSec = buildDurationMillis / 1000
+          def buildDurationSec = (buildDurationMillis / 1000).toInteger()
+
           sh """
             echo "tests_total ${totalTests}" > metrics.prom
             echo "tests_passed ${passedTests}" >> metrics.prom
             echo "tests_failed ${totalFailures}" >> metrics.prom
             echo "tests_pass_rate ${passRate}" >> metrics.prom
+            echo "total_duration ${buildDurationSec}" >> metrics.prom
 
             curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
           """
