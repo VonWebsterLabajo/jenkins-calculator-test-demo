@@ -163,7 +163,7 @@ pipeline {
           ).trim()
           
           def passedTests = totalTests.toInteger() - totalFailures.toInteger()
-          def passRate = ((passedTests * 100) / totalTests)
+          def passRate = (passedTests * 100) / totalTests.toInteger()
 
           sh """
             echo "tests_total ${totalTests}" > metrics.prom
@@ -176,7 +176,6 @@ pipeline {
         }
       }
     }
-
 
     stage('📊 Generate Allure Report') {
       steps {
