@@ -112,47 +112,46 @@ pipeline {
       }
     }
 
-    // stage('📈 Push Metrics to InfluxDB') {
-    //   steps {
-    //     script {
-    //       try {
-    //         def totalTests = sh(
-    //           script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
-    //           returnStdout: true
-    //         ).trim().toInteger()
+    stage('📈 Push Metrics to InfluxDB') {
+      steps {
+        script {
+          try {
+            def totalTests = sh(
+              script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
+              returnStdout: true
+            ).trim().toInteger()
 
-    //         def totalFailures = sh(
-    //           script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
-    //           returnStdout: true
-    //         ).trim().toInteger()
+            def totalFailures = sh(
+              script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
+              returnStdout: true
+            ).trim().toInteger()
 
-    //         def passedTests = totalTests - totalFailures
+            def passedTests = totalTests - totalFailures
 
-    //         def buildDurationMillis = currentBuild.duration  // in milliseconds
-    //         def buildDurationSec = (buildDurationMillis / 1000).toInteger()
+            def buildDurationMillis = currentBuild.duration  // in milliseconds
+            def buildDurationSec = (buildDurationMillis / 1000).toInteger()
 
-    //         echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
+            echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
 
-    //         // Push metrics to InfluxDB (flatten fields)
-    //         influxDbPublisher(
-    //           selectedTarget: 'jenkins-influxdb',
-    //           customData: [
-    //             "measurementName": "tests",
-    //             "total": totalTests,
-    //             "passed": passedTests,
-    //             "failed": totalFailures,
-    //             "total_duration": buildDurationSec,
-    //             "project": "calculator"
-    //           ]
-    //         )
+            // Push metrics to InfluxDB (flatten fields)
+            influxDbPublisher(
+              selectedTarget: 'jenkins-influxdb',
+              customData: [
+                "measurementName": "tests",
+                "total": totalTests,
+                "passed": passedTests,
+                "failed": totalFailures,
+                "total_duration": buildDurationSec,
+                "project": "calculator"
+              ]
+            )
 
-    //       } catch (Exception e) {
-    //         echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
-    //       }
-    //     }
-    //   }
-    // }
-
+          } catch (Exception e) {
+            echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
+          }
+        }
+      }
+    }
 
     // stage('Publish Test Metrics') {
     //   steps {
@@ -169,10 +168,9 @@ pipeline {
           
     //       def passedTests = totalTests.toInteger() - totalFailures.toInteger()
     //       def passRate = (passedTests * 100) / totalTests.toInteger()
+    //       def buildDurationSec = (currentBuild.duration / 1000).toInteger()
 
-    //       def buildDurationMillis = currentBuild.duration  // in milliseconds
-    //       def buildDurationSec = (buildDurationMillis / 1000).toInteger()
-
+    //       // Write metrics to a temporary file
     //       sh """
     //         echo "tests_total ${totalTests}" > metrics.prom
     //         echo "tests_passed ${passedTests}" >> metrics.prom
@@ -180,45 +178,12 @@ pipeline {
     //         echo "tests_pass_rate ${passRate}" >> metrics.prom
     //         echo "total_duration ${buildDurationSec}" >> metrics.prom
 
-    //         curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
-    //         curl -X DELETE http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER}
-
+    //         # Push to Pushgateway using build-specific job name and replace flag
+    //         curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER}?replace
     //       """
     //     }
     //   }
     // }
-
-    stage('Publish Test Metrics') {
-      steps {
-        script {
-          def totalTests = sh(
-            script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
-            returnStdout: true
-          ).trim()
-          
-          def totalFailures = sh(
-            script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
-            returnStdout: true
-          ).trim()
-          
-          def passedTests = totalTests.toInteger() - totalFailures.toInteger()
-          def passRate = (passedTests * 100) / totalTests.toInteger()
-          def buildDurationSec = (currentBuild.duration / 1000).toInteger()
-
-          // Write metrics to a temporary file
-          sh """
-            echo "tests_total ${totalTests}" > metrics.prom
-            echo "tests_passed ${passedTests}" >> metrics.prom
-            echo "tests_failed ${totalFailures}" >> metrics.prom
-            echo "tests_pass_rate ${passRate}" >> metrics.prom
-            echo "total_duration ${buildDurationSec}" >> metrics.prom
-
-            # Push to Pushgateway using build-specific job name and replace flag
-            curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER}?replace
-          """
-        }
-      }
-    }
   
 
     stage('📊 Generate Allure Report') {
@@ -308,14 +273,6 @@ pipeline {
 		always {
 			echo "🧹 Cleanup..."
 			sh 'rm -f ${HTTP_PID_FILE} ${HTTP_LOG} || true'
-
-      // Clean up the temporary metrics file
-      sh 'rm -f metrics.prom || true'
-
-      // Delete Pushgateway metrics after pipeline completes
-      sh """
-        curl -X DELETE http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER} || true
-      """
 		}
 
 		// success {
