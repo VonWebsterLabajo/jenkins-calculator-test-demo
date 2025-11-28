@@ -163,7 +163,7 @@ pipeline {
           ).trim()
           
           def passedTests = totalTests.toInteger() - totalFailures.toInteger()
-          def passRate = ((passedTests.toFloat() / totalTests.toFloat()) * 100).round(2)
+          def passRate = ((passedTests * 100) / totalTests)
 
           sh """
             echo "tests_total ${totalTests}" > metrics.prom
