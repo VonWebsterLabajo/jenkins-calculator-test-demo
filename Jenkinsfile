@@ -150,14 +150,16 @@ pipeline {
     // }
 
     stage('Publish Test Metrics') {
-      sh '''
-        echo "tests_total ${TOTAL}" > metrics.prom
-        echo "tests_passed ${PASSED}" >> metrics.prom
-        echo "tests_failed ${FAILED}" >> metrics.prom
-        echo "tests_pass_rate ${PASS_RATE}" >> metrics.prom
+      steps {
+        sh '''
+          echo "tests_total ${TOTAL}" > metrics.prom
+          echo "tests_passed ${PASSED}" >> metrics.prom
+          echo "tests_failed ${FAILED}" >> metrics.prom
+          echo "tests_pass_rate ${PASS_RATE}" >> metrics.prom
 
-        curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
-      '''
+          curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
+        '''
+      }
     }
 
 
