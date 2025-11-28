@@ -188,36 +188,38 @@ pipeline {
     //   }
     // }
 
-  stage('Publish Test Metrics') {
-    steps {
-      script {
-        def totalTests = sh(
-          script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
-          returnStdout: true
-        ).trim()
-        
-        def totalFailures = sh(
-          script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
-          returnStdout: true
-        ).trim()
-        
-        def passedTests = totalTests.toInteger() - totalFailures.toInteger()
-        def passRate = (passedTests * 100) / totalTests.toInteger()
-        def buildDurationSec = (currentBuild.duration / 1000).toInteger()
+    stage('Publish Test Metrics') {
+      steps {
+        script {
+          def totalTests = sh(
+            script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
+            returnStdout: true
+          ).trim()
+          
+          def totalFailures = sh(
+            script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
+            returnStdout: true
+          ).trim()
+          
+          def passedTests = totalTests.toInteger() - totalFailures.toInteger()
+          def passRate = (passedTests * 100) / totalTests.toInteger()
+          def buildDurationSec = (currentBuild.duration / 1000).toInteger()
 
-        // Write metrics to a temporary file
-        sh """
-          echo "tests_total ${totalTests}" > metrics.prom
-          echo "tests_passed ${passedTests}" >> metrics.prom
-          echo "tests_failed ${totalFailures}" >> metrics.prom
-          echo "tests_pass_rate ${passRate}" >> metrics.prom
-          echo "total_duration ${buildDurationSec}" >> metrics.prom
+          // Write metrics to a temporary file
+          sh """
+            echo "tests_total ${totalTests}" > metrics.prom
+            echo "tests_passed ${passedTests}" >> metrics.prom
+            echo "tests_failed ${totalFailures}" >> metrics.prom
+            echo "tests_pass_rate ${passRate}" >> metrics.prom
+            echo "total_duration ${buildDurationSec}" >> metrics.prom
 
-          # Push to Pushgateway using build-specific job name and replace flag
-          curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER}?replace
-        """
+            # Push to Pushgateway using build-specific job name and replace flag
+            curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER}?replace
+          """
+        }
       }
     }
+  
 
     stage('📊 Generate Allure Report') {
       steps {
