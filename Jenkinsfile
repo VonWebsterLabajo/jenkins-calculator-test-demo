@@ -154,35 +154,68 @@ pipeline {
     // }
 
 
-    stage('Publish Test Metrics') {
-      steps {
-        script {
-          def totalTests = sh(
-            script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
-            returnStdout: true
-          ).trim()
+    // stage('Publish Test Metrics') {
+    //   steps {
+    //     script {
+    //       def totalTests = sh(
+    //         script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
+    //         returnStdout: true
+    //       ).trim()
           
-          def totalFailures = sh(
-            script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
-            returnStdout: true
-          ).trim()
+    //       def totalFailures = sh(
+    //         script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
+    //         returnStdout: true
+    //       ).trim()
           
-          def passedTests = totalTests.toInteger() - totalFailures.toInteger()
-          def passRate = (passedTests * 100) / totalTests.toInteger()
+    //       def passedTests = totalTests.toInteger() - totalFailures.toInteger()
+    //       def passRate = (passedTests * 100) / totalTests.toInteger()
 
-          def buildDurationMillis = currentBuild.duration  // in milliseconds
-          def buildDurationSec = (buildDurationMillis / 1000).toInteger()
+    //       def buildDurationMillis = currentBuild.duration  // in milliseconds
+    //       def buildDurationSec = (buildDurationMillis / 1000).toInteger()
 
-          sh """
-            echo "tests_total ${totalTests}" > metrics.prom
-            echo "tests_passed ${passedTests}" >> metrics.prom
-            echo "tests_failed ${totalFailures}" >> metrics.prom
-            echo "tests_pass_rate ${passRate}" >> metrics.prom
-            echo "total_duration ${buildDurationSec}" >> metrics.prom
+    //       sh """
+    //         echo "tests_total ${totalTests}" > metrics.prom
+    //         echo "tests_passed ${passedTests}" >> metrics.prom
+    //         echo "tests_failed ${totalFailures}" >> metrics.prom
+    //         echo "tests_pass_rate ${passRate}" >> metrics.prom
+    //         echo "total_duration ${buildDurationSec}" >> metrics.prom
 
-            curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
-          """
-        }
+    //         curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
+    //         curl -X DELETE http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER}
+
+    //       """
+    //     }
+    //   }
+    // }
+
+  stage('Publish Test Metrics') {
+    steps {
+      script {
+        def totalTests = sh(
+          script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
+          returnStdout: true
+        ).trim()
+        
+        def totalFailures = sh(
+          script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
+          returnStdout: true
+        ).trim()
+        
+        def passedTests = totalTests.toInteger() - totalFailures.toInteger()
+        def passRate = (passedTests * 100) / totalTests.toInteger()
+        def buildDurationSec = (currentBuild.duration / 1000).toInteger()
+
+        // Write metrics to a temporary file
+        sh """
+          echo "tests_total ${totalTests}" > metrics.prom
+          echo "tests_passed ${passedTests}" >> metrics.prom
+          echo "tests_failed ${totalFailures}" >> metrics.prom
+          echo "tests_pass_rate ${passRate}" >> metrics.prom
+          echo "total_duration ${buildDurationSec}" >> metrics.prom
+
+          # Push to Pushgateway using build-specific job name and replace flag
+          curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER}?replace
+        """
       }
     }
 
@@ -273,6 +306,14 @@ pipeline {
 		always {
 			echo "🧹 Cleanup..."
 			sh 'rm -f ${HTTP_PID_FILE} ${HTTP_LOG} || true'
+
+      // Clean up the temporary metrics file
+      sh 'rm -f metrics.prom || true'
+
+      // Delete Pushgateway metrics after pipeline completes
+      sh """
+        curl -X DELETE http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER} || true
+      """
 		}
 
 		// success {
