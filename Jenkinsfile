@@ -112,46 +112,46 @@ pipeline {
       }
     }
 
-    stage('📈 Push Metrics to InfluxDB') {
-      steps {
-        script {
-          try {
-            def totalTests = sh(
-              script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
-              returnStdout: true
-            ).trim().toInteger()
+    // stage('📈 Push Metrics to InfluxDB') {
+    //   steps {
+    //     script {
+    //       try {
+    //         def totalTests = sh(
+    //           script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
+    //           returnStdout: true
+    //         ).trim().toInteger()
 
-            def totalFailures = sh(
-              script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
-              returnStdout: true
-            ).trim().toInteger()
+    //         def totalFailures = sh(
+    //           script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
+    //           returnStdout: true
+    //         ).trim().toInteger()
 
-            def passedTests = totalTests - totalFailures
+    //         def passedTests = totalTests - totalFailures
 
-            def buildDurationMillis = currentBuild.duration  // in milliseconds
-            def buildDurationSec = (buildDurationMillis / 1000).toInteger()
+    //         def buildDurationMillis = currentBuild.duration  // in milliseconds
+    //         def buildDurationSec = (buildDurationMillis / 1000).toInteger()
 
-            echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
+    //         echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
 
-            // Push metrics to InfluxDB (flatten fields)
-            influxDbPublisher(
-              selectedTarget: 'jenkins-influxdb',
-              customData: [
-                "measurementName": "tests",
-                "total": totalTests,
-                "passed": passedTests,
-                "failed": totalFailures,
-                "total_duration": buildDurationSec,
-                "project": "calculator"
-              ]
-            )
+    //         // Push metrics to InfluxDB (flatten fields)
+    //         influxDbPublisher(
+    //           selectedTarget: 'jenkins-influxdb',
+    //           customData: [
+    //             "measurementName": "tests",
+    //             "total": totalTests,
+    //             "passed": passedTests,
+    //             "failed": totalFailures,
+    //             "total_duration": buildDurationSec,
+    //             "project": "calculator"
+    //           ]
+    //         )
 
-          } catch (Exception e) {
-            echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
-          }
-        }
-      }
-    }
+    //       } catch (Exception e) {
+    //         echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
+    //       }
+    //     }
+    //   }
+    // }
 
     stage('Publish Test Metrics Prometheus') {
       steps {
