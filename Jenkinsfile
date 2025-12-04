@@ -112,78 +112,78 @@ pipeline {
       }
     }
 
-    // stage('📈 Push Metrics to InfluxDB') {
-    //   steps {
-    //     script {
-    //       try {
-    //         def totalTests = sh(
-    //           script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
-    //           returnStdout: true
-    //         ).trim().toInteger()
-
-    //         def totalFailures = sh(
-    //           script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
-    //           returnStdout: true
-    //         ).trim().toInteger()
-
-    //         def passedTests = totalTests - totalFailures
-
-    //         def buildDurationMillis = currentBuild.duration  // in milliseconds
-    //         def buildDurationSec = (buildDurationMillis / 1000).toInteger()
-
-    //         echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
-
-    //         // Push metrics to InfluxDB (flatten fields)
-    //         influxDbPublisher(
-    //           selectedTarget: 'jenkins-influxdb',
-    //           customData: [
-    //             "measurementName": "tests",
-    //             "total": totalTests,
-    //             "passed": passedTests,
-    //             "failed": totalFailures,
-    //             "total_duration": buildDurationSec,
-    //             "project": "calculator"
-    //           ]
-    //         )
-
-    //       } catch (Exception e) {
-    //         echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
-    //       }
-    //     }
-    //   }
-    // }
-
-    stage('Publish Test Metrics Prometheus') {
+    stage('📈 Push Metrics to InfluxDB') {
       steps {
         script {
-          def totalTests = sh(
-            script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
-            returnStdout: true
-          ).trim()
-          
-          def totalFailures = sh(
-            script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
-            returnStdout: true
-          ).trim()
-          
-          def passedTests = totalTests.toInteger() - totalFailures.toInteger()
-          def passRate = (passedTests * 100) / totalTests.toInteger()
-          def buildDurationSec = (currentBuild.duration / 1000).toInteger()
+          try {
+            def totalTests = sh(
+              script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
+              returnStdout: true
+            ).trim().toInteger()
 
-          // Write metrics to a temporary file
-          sh """
-            echo "tests_total ${totalTests}" > metrics.prom
-            echo "tests_passed ${passedTests}" >> metrics.prom
-            echo "tests_failed ${totalFailures}" >> metrics.prom
-            echo "tests_pass_rate ${passRate}" >> metrics.prom
-            echo "total_duration ${buildDurationSec}" >> metrics.prom
+            def totalFailures = sh(
+              script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
+              returnStdout: true
+            ).trim().toInteger()
 
-            # Push to Pushgateway using build-specific job name and replace flag
-            curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
-          """
+            def passedTests = totalTests - totalFailures
+
+            def buildDurationMillis = currentBuild.duration  // in milliseconds
+            def buildDurationSec = (buildDurationMillis / 1000).toInteger()
+
+            echo "Total Tests: ${totalTests}, Passed: ${passedTests}, Failures: ${totalFailures}, Build Duration (sec): ${buildDurationSec}"
+
+            // Push metrics to InfluxDB (flatten fields)
+            influxDbPublisher(
+              selectedTarget: 'jenkins-influxdb',
+              customData: [
+                "measurementName": "tests",
+                "total": totalTests,
+                "passed": passedTests,
+                "failed": totalFailures,
+                "total_duration": buildDurationSec,
+                "project": "calculator"
+              ]
+            )
+
+          } catch (Exception e) {
+            echo "⚠️ InfluxDB push failed: ${e.getMessage()}"
+          }
         }
       }
     }
+
+    // stage('Publish Test Metrics Prometheus') {
+    //   steps {
+    //     script {
+    //       def totalTests = sh(
+    //         script: "xmllint --xpath 'sum(//testsuite/@tests)' ${TEST_DIR}/target/surefire-reports/*.xml",
+    //         returnStdout: true
+    //       ).trim()
+          
+    //       def totalFailures = sh(
+    //         script: "xmllint --xpath 'sum(//testsuite/@failures)' ${TEST_DIR}/target/surefire-reports/*.xml",
+    //         returnStdout: true
+    //       ).trim()
+          
+    //       def passedTests = totalTests.toInteger() - totalFailures.toInteger()
+    //       def passRate = (passedTests * 100) / totalTests.toInteger()
+    //       def buildDurationSec = (currentBuild.duration / 1000).toInteger()
+
+    //       // Write metrics to a temporary file
+    //       sh """
+    //         echo "tests_total ${totalTests}" > metrics.prom
+    //         echo "tests_passed ${passedTests}" >> metrics.prom
+    //         echo "tests_failed ${totalFailures}" >> metrics.prom
+    //         echo "tests_pass_rate ${passRate}" >> metrics.prom
+    //         echo "total_duration ${buildDurationSec}" >> metrics.prom
+
+    //         # Push to Pushgateway using build-specific job name and replace flag
+    //         curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
+    //       """
+    //     }
+    //   }
+    // }
   
 
     stage('📊 Generate Allure Report') {
