@@ -179,7 +179,7 @@ pipeline {
             echo "total_duration ${buildDurationSec}" >> metrics.prom
 
             # Push to Pushgateway using build-specific job name and replace flag
-            curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests/build_${BUILD_NUMBER}?replace
+            curl -X POST --data-binary @metrics.prom http://pushgateway:9091/metrics/job/jenkins_tests
           """
         }
       }
